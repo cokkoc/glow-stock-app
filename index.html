@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Glow — украшения</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="config.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#fff);--tx:var(--tg-theme-text-color,#1b1b18);--hint:var(--tg-theme-hint-color,#77756c);--btn:var(--tg-theme-button-color,#2f6f5e);--btx:var(--tg-theme-button-text-color,#fff);--sec:var(--tg-theme-secondary-bg-color,#f3f2ee);--line:rgba(127,127,127,.25);--warn:#c0572a;--ok:#2f8f5e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 -apple-system,system-ui,"Segoe UI",sans-serif;padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 12px 8px;border-bottom:1px solid var(--line)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{flex:1}
+h1{font-size:17px;margin:0}.me{font-size:12px;color:var(--hint)}
+.chip{border:1px solid var(--line);background:var(--sec);color:var(--tx);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--btn);color:var(--btx);border-color:var(--btn)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+input.q{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--sec);color:var(--tx);font:inherit;margin-top:8px}
+main{padding:10px 12px}
+.card{display:flex;gap:10px;background:var(--sec);border-radius:12px;padding:8px;margin-bottom:8px;align-items:center}
+.ph{width:64px;height:64px;border-radius:8px;background:var(--line);flex:none;object-fit:cover;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:10px;text-align:center}
+.inf{flex:1;min-width:0}.nm{font-weight:600;font-size:14px;line-height:1.25}.sub{font-size:12px;color:var(--hint)}
+.stk{font-size:12px}.stk.zero{color:var(--warn)}
+.ctl{display:flex;align-items:center;gap:6px}
+.btn{background:var(--btn);color:var(--btx);border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:var(--sec);color:var(--tx);border:1px solid var(--line)}.btn.red{background:var(--warn)}.btn:disabled{opacity:.45}
+.pm{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--tx);font-size:18px;cursor:pointer}
+.num{width:58px;text-align:center;padding:7px 4px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+.num.done{border-color:var(--ok)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:6}
+nav button{flex:1;border:0;background:none;color:var(--hint);font:inherit;font-size:12px;padding:6px 2px;cursor:pointer;position:relative}
+nav button.on{color:var(--btn);font-weight:700}
+.badge{position:absolute;top:0;right:18%;background:var(--warn);color:#fff;border-radius:9px;font-size:10px;padding:1px 5px}
+.bar{position:fixed;left:0;right:0;bottom:calc(52px + env(safe-area-inset-bottom));padding:8px 12px;background:var(--bg);border-top:1px solid var(--line);z-index:5;display:flex;gap:10px;align-items:center}
+.box{background:var(--sec);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:11px;background:var(--line)}.tag.ok{background:rgba(47,143,94,.2);color:var(--ok)}.tag.no{background:rgba(192,87,42,.2);color:var(--warn)}
+.diff b{color:var(--btn)}.empty{color:var(--hint);text-align:center;padding:30px 10px}
+.toast{position:fixed;left:12px;right:12px;top:10px;background:#222;color:#fff;padding:10px 12px;border-radius:10px;z-index:20;font-size:13px;display:none}
+.err{color:var(--warn);font-size:13px;margin:6px 0}
+</style></head><body>
+<header><div class="row"><h1 id="ttl">Украшения</h1><span class="sp"></span><div class="chips" id="whs" style="padding:0"></div></div><div class="me" id="me"></div>
+<div id="tools"></div></header>
+<main id="m"></main><div id="bar"></div>
+<nav id="nav"></nav><div class="toast" id="toast"></div>
+<script>
+const TG=window.Telegram&&Telegram.WebApp,CFG=window.APP_CONFIG||{},DEMO=/[?&]demo=1/.test(location.search);
+if(TG){try{TG.ready();TG.expand()}catch(e){}}
+const $=s=>document.querySelector(s),e=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const S={me:null,wh:null,tab:'write',items:[],kinds:[],grp:'Все',q:'',cart:{},count:{},kind:{},onlyNew:false,reqs:[],inbox:[],invs:[],time:'',comment:'',err:''};
+function toast(t){const x=$('#toast');x.textContent=t;x.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>x.style.display='none',2600)}
+async function api(action,data){
+  if(DEMO)return demoApi(action,data||{});
+  if(!CFG.API_URL)throw new Error('Не задан адрес API (config.js)');
+  const r=await fetch(CFG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,initData:TG?TG.initData:''},data||{}))});
+  const j=await r.json();if(!j.ok)throw new Error(j.error||'Ошибка');return j;
+}
+const draftKey=()=>'cnt_'+S.wh;
+function saveDraft(){try{localStorage.setItem(draftKey(),JSON.stringify({c:S.count,k:S.kind}))}catch(x){}}
+function loadDraft(){try{const d=JSON.parse(localStorage.getItem(draftKey())||'{}');S.count=d.c||{};S.kind=d.k||{}}catch(x){S.count={};S.kind={}}}
+async function boot(){
+  try{const r=await api('me');S.me=r;S.wh=r.warehouses[0];await loadList();}catch(x){$('#m').innerHTML='<div class="empty">'+e(x.message)+'</div>';return}
+  S.tab='write';render();pull();
+}
+async function loadList(keep){const r=await api('list',{warehouse:S.wh});S.items=r.items;S.kinds=r.kinds;if(!keep){loadDraft();S.cart={};}}
+async function pull(){
+  try{
+    if(S.me.admin){S.inbox=(await api('inbox')).requests}
+    if(S.me.owner){S.invs=(await api('pendingInventories')).inventories}
+  }catch(x){}
+  renderNav();
+}
+const tabs=()=>{const t=[['write','Списание'],['count','Пересчёт'],['mine','Мои заявки']];if(S.me.admin)t.push(['inbox','Заявки']);if(S.me.owner)t.push(['inv','Подтвердить']);return t}
+function renderNav(){
+  $('#nav').innerHTML=tabs().map(t=>{const n=t[0]==='inbox'?S.inbox.length:t[0]==='inv'?S.invs.length:0;return `<button class="${S.tab===t[0]?'on':''}" data-t="${t[0]}">${t[1]}${n?`<span class="badge">${n}</span>`:''}</button>`}).join('');
+}
+function photo(f){return f?`<img class="ph" loading="lazy" src="${e((CFG.PHOTO_URL||'')+f)}" alt="" onerror="this.outerHTML='<div class=ph>нет фото</div>'">`:'<div class="ph">нет фото</div>'}
+function groups(){return ['Все',...Array.from(new Set(S.items.map(i=>i.g)))]}
+function filtered(){const q=S.q.toLowerCase();return S.items.filter(i=>(S.grp==='Все'||i.g===S.grp)&&(!q||(i.a+' '+i.n+' '+i.v).toLowerCase().includes(q))&&(S.tab!=='count'||!S.onlyNew||S.count[i.a]===undefined))}
+function tools(){
+  if(!['write','count'].includes(S.tab)){$('#tools').innerHTML='';return}
+  $('#tools').innerHTML=`<div class="chips">${groups().map(g=>`<button class="chip ${S.grp===g?'on':''}" data-g="${e(g)}">${e(g)}</button>`).join('')}</div><input class="q" id="q" placeholder="Поиск: название или артикул" value="${e(S.q)}">`+(S.tab==='count'?`<div class="row" style="margin-top:6px"><label class="sub"><input type="checkbox" id="onlyNew" ${S.onlyNew?'checked':''}> только не посчитанные</label></div>`:'');
+}
+function render(){
+  $('#ttl').textContent={write:'Списание',count:'Пересчёт',mine:'Мои заявки',inbox:'Заявки на списание',inv:'Подтверждение пересчёта'}[S.tab];
+  $('#me').textContent=S.me.name+' · '+S.me.role;
+  $('#whs').innerHTML=S.me.warehouses.length>1?S.me.warehouses.map(w=>`<button class="chip ${S.wh===w?'on':''}" data-w="${e(w)}">${e(w)}</button>`).join(''):`<span class="chip on">${e(S.wh)}</span>`;
+  renderNav();
+  if(S.tab==='write'||S.tab==='count'){tools();}else $('#tools').innerHTML='';
+  list();
+}
+function list(){
+  const m=$('#m');$('#bar').innerHTML='';
+  if(S.tab==='write'){
+    const L=filtered().slice(0,120);
+    m.innerHTML=L.map(i=>{const q=S.cart[i.a]||0,z=i.q===0;return `<div class="card">${photo(i.f)}<div class="inf"><div class="nm">${e(i.n)}</div><div class="sub">${e(i.v)} · ${e(i.a)}${i.p?' · '+i.p+' ₽':''}</div><div class="stk ${z?'zero':''}">${i.q===null?'остаток не посчитан':z?'нет в наличии':'в наличии '+i.q}</div></div><div class="ctl">${q?`<button class="pm" data-m="${e(i.a)}">−</button><b>${q}</b>`:''}<button class="pm" data-p="${e(i.a)}" ${z?'disabled':''}>+</button></div></div>`}).join('')||'<div class="empty">Ничего не найдено</div>';
+    const n=Object.values(S.cart).reduce((a,b)=>a+b,0),sum=Object.keys(S.cart).reduce((a,k)=>a+(S.items.find(i=>i.a===k)?.p||0)*S.cart[k],0);
+    if(n)$('#bar').innerHTML=`<div class="bar"><div class="sp"><b>${n} шт</b> · ${sum} ₽<div class="sub">Основа + накрутка</div></div><button class="btn" data-open="cart">Оформить</button></div>`;
+  }else if(S.tab==='count'){
+    const L=filtered().slice(0,120);
+    m.innerHTML=L.map(i=>{const c=S.count[i.a],top=i.g.startsWith('Накрутки');return `<div class="card">${photo(i.f)}<div class="inf"><div class="nm">${e(i.n)}</div><div class="sub">${e(i.v)} · ${e(i.a)}</div><div class="stk">в таблице: ${i.q===null?'не посчитано':i.q}</div>${top?`<select data-k="${e(i.a)}" class="num" style="width:100%;margin-top:4px"><option value="">вид накрутки…</option>${S.kinds.map(k=>`<option ${((S.kind[i.a]??i.k)===k)?'selected':''}>${e(k)}</option>`).join('')}</select>`:''}</div><div class="ctl"><button class="pm" data-cm="${e(i.a)}">−</button><input class="num ${c!==undefined?'done':''}" type="number" min="0" inputmode="numeric" data-c="${e(i.a)}" value="${c===undefined?'':c}" placeholder="${i.q===null?'—':i.q}"><button class="pm" data-cp="${e(i.a)}">+</button></div></div>`}).join('')||'<div class="empty">Ничего не найдено</div>';
+    const n=Object.keys(S.count).length;
+    $('#bar').innerHTML=`<div class="bar"><div class="sp"><b>Посчитано ${n}</b> из ${S.items.length}<div class="sub">Остатки изменятся после подтверждения управляющим</div></div><button class="btn" data-open="send" ${n?'':'disabled'}>Отправить</button></div>`;
+  }else if(S.tab==='mine'){
+    m.innerHTML=S.reqs.length?S.reqs.map(r=>reqCard(r,false)).join(''):'<div class="empty">Заявок пока нет</div>';
+  }else if(S.tab==='inbox'){
+    m.innerHTML=S.inbox.length?S.inbox.map(r=>reqCard(r,true)).join(''):'<div class="empty">Новых заявок нет</div>';
+  }else if(S.tab==='inv'){
+    m.innerHTML=S.invs.length?S.invs.map(v=>`<div class="box"><b>Пересчёт №${v.id} · ${e(v.wh)}</b><div class="sub">${e(v.who)} · ${e(v.created)}${v.comment?' · '+e(v.comment):''}</div><div style="margin:8px 0">${v.lines.map(l=>`<div class="diff">${e(l.n)} <span class="sub">${e(l.a)}</span><br>${l.was===null?'не было':l.was} → <b>${l.now}</b>${l.k?' · '+e(l.k):''}${l.was!==null&&l.now<l.was?` <span class="tag no">−${l.was-l.now}</span>`:l.was!==null&&l.now>l.was?` <span class="tag ok">+${l.now-l.was}</span>`:''}</div>`).join('<hr style="border:0;border-top:1px solid var(--line)">')}</div><div class="row"><button class="btn" data-iok="${v.id}">Подтвердить</button><button class="btn sec" data-ino="${v.id}">Отклонить</button></div></div>`).join(''):'<div class="empty">Нет пересчётов на подтверждение</div>';
+  }
+}
+function reqCard(r,adm){const st={Ожидает:'',Внесено:'ok',Отклонена:'no'}[r.status]||'';return `<div class="box"><div class="row"><b>№${r.id} · ${e(r.wh)} · запись ${e(r.time)}</b><span class="sp"></span><span class="tag ${st}">${e(r.status)}</span></div><div class="sub">${e(r.master)} · ${e(r.created)}</div>${r.items.map(i=>`<div>${e(i.n)} × ${i.q}</div>`).join('')}<div><b>${r.sum} ₽</b></div>${adm?`<div class="row" style="margin-top:8px"><button class="btn" data-rok="${r.id}">Внесено в YCLIENTS</button><button class="btn sec" data-rno="${r.id}">Отклонить</button></div>`:''}</div>`}
+function sheet(html){const d=document.createElement('div');d.id='sheet';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:15;display:flex;align-items:flex-end';d.innerHTML=`<div style="background:var(--bg);width:100%;max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 12px calc(14px + env(safe-area-inset-bottom))">${html}</div>`;d.onclick=ev=>{if(ev.target===d)d.remove()};document.body.appendChild(d)}
+function openCart(){
+  const rows=Object.keys(S.cart).map(a=>{const i=S.items.find(x=>x.a===a);return `<div class="row" style="margin-bottom:6px"><div class="sp">${e(i.n)} <span class="sub">${e(i.v)}</span></div><button class="pm" data-m="${e(a)}">−</button><b>${S.cart[a]}</b><button class="pm" data-p="${e(a)}">+</button></div>`}).join('');
+  const sum=Object.keys(S.cart).reduce((a,k)=>a+(S.items.find(i=>i.a===k)?.p||0)*S.cart[k],0);
+  sheet(`<h3 style="margin:0 0 8px">Заявка на списание · ${e(S.wh)}</h3>${rows||'<div class="empty">Пусто</div>'}<div><b>Итого ${sum} ₽</b></div><div class="sub" style="margin-top:10px">Время записи клиента</div><div class="row" style="margin:6px 0">${['12:00','14:00','15:30','17:00','18:30'].map(t=>`<button class="chip ${S.time===t?'on':''}" data-time="${t}">${t}</button>`).join('')}<input type="time" id="tm" class="num" style="width:110px" value="${e(S.time)}"></div><div class="err" id="err">${e(S.err)}</div><button class="btn" style="width:100%" id="sendReq">Отправить администратору</button>`);
+}
+function openSend(){
+  sheet(`<h3 style="margin:0 0 8px">Отправить пересчёт на подтверждение</h3><div class="sub">Позиций: ${Object.keys(S.count).length}. После подтверждения управляющим остатки в таблице обновятся.</div><input class="q" id="cm" placeholder="Комментарий (необязательно)" value="${e(S.comment)}"><div class="err" id="err"></div><button class="btn" style="width:100%;margin-top:10px" id="sendInv">Отправить управляющему</button>`);
+}
+async function guard(fn){try{await fn()}catch(x){toast(x.message)}}
+document.addEventListener('click',ev=>guard(async()=>{
+  const t=ev.target.closest('button,[data-t]');if(!t)return;const d=t.dataset;
+  if(d.t){S.tab=d.t;S.grp='Все';S.q='';S.onlyNew=false;if(d.t==='mine'){S.reqs=(await api('myRequests')).requests}if(d.t==='inbox'||d.t==='inv')await pull();if(d.t==='write'||d.t==='count')await loadList(true);render();window.scrollTo(0,0);return}
+  if(d.w){S.wh=d.w;await loadList();render();return}
+  if(d.g!==undefined){S.grp=d.g;render();return}
+  if(d.p!==undefined){S.cart[d.p]=(S.cart[d.p]||0)+1;render();if($('#sheet')){$('#sheet').remove();openCart()}return}
+  if(d.m!==undefined){S.cart[d.m]=(S.cart[d.m]||1)-1;if(S.cart[d.m]<=0)delete S.cart[d.m];render();if($('#sheet')){$('#sheet').remove();if(Object.keys(S.cart).length)openCart()}return}
+  if(d.cp!==undefined){S.count[d.cp]=(S.count[d.cp]||0)+1;saveDraft();render();return}
+  if(d.cm!==undefined){S.count[d.cm]=Math.max(0,(S.count[d.cm]??0)-1);saveDraft();render();return}
+  if(d.open==='cart'){S.err='';openCart();return}
+  if(d.open==='send'){openSend();return}
+  if(d.time){S.time=d.time;$('#sheet').remove();openCart();return}
+  if(t.id==='sendReq'){S.time=$('#tm').value||S.time;if(!S.time){S.err='Укажите время записи';$('#err').textContent=S.err;return}t.disabled=true;
+    const r=await api('createRequest',{warehouse:S.wh,time:S.time,items:Object.keys(S.cart).map(a=>({a,q:S.cart[a]}))});S.cart={};S.time='';$('#sheet').remove();toast('Заявка №'+r.id+' отправлена · '+r.sum+' ₽');render();return}
+  if(t.id==='sendInv'){t.disabled=true;const lines=Object.keys(S.count).map(a=>({a,q:S.count[a],k:S.kind[a]||''}));
+    const r=await api('submitInventory',{warehouse:S.wh,comment:$('#cm').value,lines});S.count={};S.kind={};saveDraft();$('#sheet').remove();toast('Пересчёт №'+r.id+' отправлен управляющему');render();return}
+  if(d.rok||d.rno){const id=+(d.rok||d.rno);if(d.rno&&!confirm('Отклонить заявку №'+id+'?'))return;await api('decideRequest',{id,approve:!!d.rok});toast(d.rok?'Внесено, остаток уменьшен':'Заявка отклонена');await pull();render();return}
+  if(d.iok||d.ino){const id=+(d.iok||d.ino);if(!confirm((d.iok?'Подтвердить':'Отклонить')+' пересчёт №'+id+'?'))return;await api('decideInventory',{id,approve:!!d.iok});toast(d.iok?'Подтверждено: остатки обновлены':'Пересчёт отклонён');await pull();if(d.iok)await loadList();render();return}
+}));
+document.addEventListener('input',ev=>{const t=ev.target;
+  if(t.id==='q'){S.q=t.value;list()}
+  else if(t.dataset.c!==undefined){const v=t.value;if(v==='')delete S.count[t.dataset.c];else S.count[t.dataset.c]=Math.max(0,parseInt(v,10)||0);saveDraft();$('#bar').innerHTML=$('#bar').innerHTML;const n=Object.keys(S.count).length;const b=document.querySelector('#bar b');if(b)b.textContent='Посчитано '+n;const bt=document.querySelector('[data-open=send]');if(bt)bt.disabled=!n;t.classList.toggle('done',v!=='')}
+});
+document.addEventListener('change',ev=>{const t=ev.target;
+  if(t.id==='onlyNew'){S.onlyNew=t.checked;list()}
+  else if(t.dataset.k!==undefined){S.kind[t.dataset.k]=t.value;saveDraft()}
+  else if(t.id==='tm'){S.time=t.value}
+});
+// ---------- демо-режим (?demo=1[&role=owner|admin|master]) для проверки без Telegram ----------
+const DEMO_ITEMS=[['TP-001-3','Фианит круглый в лапках','3 мм','Накрутки',1600,3],['TP-014','Череп','','Накрутки',1300,1],['TP-003','Цветок из 5 фианитов','','Накрутки',2600,null],['LB-001-12X6-TI','Лабрет классика','1,2Х6 / титан','Лабреты',600,121],['LB-001-16X8-TI','Лабрет классика','1,6Х8 / титан','Лабреты',600,null],['LB-001-12X12-TI','Лабрет классика','1,2х12 / титан','Лабреты',600,0],['BN-014-16X10-TI','Банан классика','1,6х10 / титан','Бананы',400,0],['BB-005-16X12-TI','Штанга классика','1,6х12 / титан','Штанги',500,16],['CL-012','Кластер-дуга с шариками','','Кластеры',3200,null],['RG-014','Кольцо с опалом-шариком','','Кольца',1900,null]];
+const DM={items:DEMO_ITEMS.map(r=>({a:r[0],n:r[1],v:r[2],g:r[3],p:r[4],f:'',q:r[5],k:''})),reqs:[],invs:[],id:12};
+const role=(location.search.match(/role=(\w+)/)||[])[1]||'owner';
+function demoApi(a,d){return new Promise(res=>setTimeout(()=>{
+  if(a==='me')return res({ok:true,name:'Демо',role:role==='owner'?'управляющий':role==='admin'?'админ':'мастер',warehouses:['Центр','Юг'],admin:role!=='master',owner:role==='owner'});
+  if(a==='list')return res({items:JSON.parse(JSON.stringify(DM.items)).map(i=>d.warehouse==='Юг'?Object.assign(i,{q:null}):i),kinds:['сердце','звезда','опалы','череп']});
+  if(a==='createRequest'){const sum=d.items.reduce((s,i)=>s+(DM.items.find(x=>x.a===i.a).p*i.q),0);const r={id:DM.id++,created:'сейчас',time:d.time,wh:d.warehouse,master:'Демо',status:'Ожидает',sum,items:d.items.map(i=>({a:i.a,n:DM.items.find(x=>x.a===i.a).n,q:i.q}))};DM.reqs.push(r);return res({id:r.id,sum});}
+  if(a==='myRequests')return res({requests:DM.reqs.slice().reverse()});
+  if(a==='inbox')return res({requests:DM.reqs.filter(r=>r.status==='Ожидает')});
+  if(a==='decideRequest'){const r=DM.reqs.find(x=>x.id===d.id);r.status=d.approve?'Внесено':'Отклонена';if(d.approve)r.items.forEach(i=>{const x=DM.items.find(z=>z.a===i.a);if(x.q!==null)x.q=Math.max(0,x.q-i.q)});return res({});}
+  if(a==='submitInventory'){const v={id:DM.id++,created:'сейчас',wh:d.warehouse,who:'Демо',comment:d.comment,lines:d.lines.map(l=>{const x=DM.items.find(z=>z.a===l.a);return{a:l.a,n:x.n+' '+x.v,was:x.q,now:l.q,k:l.k}})};DM.invs.push(v);return res({id:v.id,count:v.lines.length});}
+  if(a==='pendingInventories')return res({inventories:DM.invs});
+  if(a==='decideInventory'){const v=DM.invs.find(x=>x.id===d.id);if(d.approve)v.lines.forEach(l=>{DM.items.find(z=>z.a===l.a).q=l.now});DM.invs=DM.invs.filter(x=>x!==v);return res({});}
+  res({});
+},120))}
+boot();
+</script></body></html>
